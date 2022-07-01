@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <!-- Styles -->
+    <link href="https://fonts.googleapis.com/css?family=Ubuntu" rel="stylesheet">
+    <link href="/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/icons.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="/icomoon/style.css" rel="stylesheet">
+    <link href="/uniform/default.css" rel="stylesheet">
+    <link href="/switchery/switchery.min.css" rel="stylesheet">
+    <link href="/nvd3/nv.d3.min.css" rel="stylesheet">
+
+    <link href="/css/ecaps.min.css" rel="stylesheet">
+    <style>
+        .nodes {
+            cursor: pointer;
+        }
+
+        .nodes .node_container text {
+            text-anchor: middle;
+            font-size: 25px;
+            fill: #444444;
+        }
+
+        .nodes .node_container circle {
+            stroke-width: 5;
+        }
+
+        .nodes .node_container.stat_normal circle {
+            stroke: #1ca2db;
+            fill: rgba(53, 186, 246, 0.67);
+        }
+
+        .nodes .node_container.stat_abnormal circle {
+            stroke: #E5F1B6;
+            fill: rgba(229, 241, 182, 0.67);
+        }
+
+        .nodes .node_container.stat_error circle {
+            stroke: #ff4200;
+            fill: rgba(214, 100, 62, 0.67);
+        }
+
+        .nodes .node_container.stat_down circle {
+            stroke: #adabab;
+            fill: rgba(193, 193, 193, 0.67);
+        }
+
+        .nodes .node_container.stat_unknown circle {
+            stroke: #604c45;
+            fill: rgba(99, 77, 69, 0.67);
+        }
+
+        .nodes .node_container.focus circle {
+            stroke: black !important;
+        }
+
+        .links .link_container .link_item {
+            stroke: #999;
+            fill: none;
+            stroke-width: 3px;
+        }
+
+        .links .link_container .link_selector {
+            stroke: rgba(170, 160, 100, 0);
+
+            fill: none;
+            stroke-width: 9px;
+        }
+
+        .links .link_container.focus .link_item {
+            stroke: black;
+        }
+
+        .nodes .node_container .desc {
+            font-size: 16px;
+        }
+
+        .tooltip {
+            line-height: 1;
+            font-weight: bold;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border-radius: 10px;
+            z-index: 100;
+        }
+
+        .tooltip strong.title {
+            display: inline-block;
+            width: 75px;
+        }
+
+        .themis {
+            font-family: "themis-font" !important;
+        }
+    </style>
+</head>
+
+<body class="page-sidebar-collapsed">
+<!-- Page Container -->
+<div class="page-container">
+    <!-- Page Sidebar -->
+    <div class="page-sidebar">
+        <a class="logo-box" href="">
+            <span>themis</span>
+            <i class="icon-radio_button_unchecked" id="fixed-sidebar-toggle-button"></i>
+            <i class="icon-close" id="sidebar-toggle-button-close"></i>
+        </a>
+        <div class="page-sidebar-inner">
+            <div class="page-sidebar-menu">
+                <ul class="accordion-menu">
+                    <li>
+                        <a href="/">
+                            <i class="menu-icon icon-home4"></i><span>状况信息</span>
+                        </a>
+                    </li>
+                    <li class="active-page">
+                        <a href="topo">
+                            <i class="menu-icon icon-show_chart"></i><span>当前安全</span>
+                        </a>
+                    </li>
+                    <li class="menu-divider"></li>
+                    <li>
+                        <a href="index.html">
+                            <i class="menu-icon icon-help_outline"></i><span>Documentation</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="index.html">
+                            <i class="menu-icon icon-public"></i><span>Changelog</span><span
+                                class="label label-danger">1.0</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div><!-- /Page Sidebar -->
+
+    <!-- Page Content -->
+    <div class="page-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="search-form">
+                <form action="#" method="GET">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control search-input"
+                               placeholder="Type something...">
+                        <span class="input-group-btn">
+                                <button class="btn btn-default" id="close-search" type="button"><i
+                                        class="icon-close"></i></button>
+                            </span>
+                    </div>
+                </form>
+            </div>
+            <nav class="navbar navbar-default">
+                <div class="container-fluid">
+                    <!-- Brand and toggle get grouped for better mobile display -->
+                    <div class="navbar-header">
+                        <div class="logo-sm">
+                            <a href="javascript:void(0)" id="sidebar-toggle-button"><i class="fa fa-bars"></i></a>
+                            <a class="logo-box" href="index.html"><span>ecaps</span></a>
+                        </div>
+                        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+                                data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+                            <i class="fa fa-angle-down"></i>
+                        </button>
+                    </div>
+
+                    <!-- Collect the nav links, forms, and other content for toggling -->
+
+                    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                        <ul class="nav navbar-nav">
+                            <li><a href="javascript:void(0)" id="collapsed-sidebar-toggle-button"><i
+                                    class="fa fa-bars"></i></a></li>
+                            <li><a href="javascript:void(0)" id="toggle-fullscreen"><i class="fa fa-expand"></i></a>
+                            </li>
+                            <li><a href="javascript:void(0)" id="search-button"><i class="fa fa-search"></i></a>
+                            </li>
+                        </ul>
+                        <ul class="nav navbar-nav navbar-right">
+                            <li><a href="javascript:void(0)" class="right-sidebar-toggle"
+                                   data-sidebar-id="main-right-sidebar"><i class="fa fa-envelope"></i></a></li>
+                            <li class="dropdown">
+                                <a href="javascript:void(0)" class="dropdown-toggle" data-toggle="dropdown"
+                                   role="button" aria-haspopup="true" aria-expanded="false"><i
+                                        class="fa fa-bell"></i></a>
+                                <ul class="dropdown-menu dropdown-lg dropdown-content">
+                                    <li class="drop-title">Notifications<a href="#" class="drop-title-link"><i
+                                            class="fa fa-angle-right"></i></a></li>
+                                    <li class="slimscroll dropdown-notifications">
+                                        <ul class="list-unstyled dropdown-oc">
+                                            <li>
+                                                <a href="http://www.datouwang.com/"><span
+                                                        class="notification-badge bg-primary"><i
+                                                        class="fa fa-photo"></i></span>
+                                                    <span class="notification-info">Finished uploading photos to
+                                                            gallery <b>"South Africa"</b>.
+                                                            <small class="notification-date">20:00</small>
+                                                        </span></a>
+                                            </li>
+                                            <li>
+                                                <a href="#"><span class="notification-badge bg-primary"><i
+                                                        class="fa fa-at"></i></span>
+                                                    <span class="notification-info"><b>John Doe</b> mentioned you in
+                                                            a post "Update v1.5".
+                                                            <small class="notification-date">06:07</small>
+                                                        </span></a>
+                                            </li>
+                                            <li>
+                                                <a href="#"><span class="notification-badge bg-danger"><i
+                                                        class="fa fa-bolt"></i></span>
+                                                    <span class="notification-info">4 new special offers from the
+                                                            apps you follow!
+                                                            <small class="notification-date">Yesterday</small>
+                                                        </span></a>
+                                            </li>
+                                            <li>
+                                                <a href="#"><span class="notification-badge bg-success"><i
+                                                        class="fa fa-bullhorn"></i></span>
+                                                    <span class="notification-info">There is a meeting with
+                                                            <b>Ethan</b> in 15 minutes!
+                                                            <small class="notification-date">Yesterday</small>
+                                                        </span></a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="dropdown user-dropdown">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button"
+                                   aria-haspopup="true" aria-expanded="false"><img
+                                        src="http://via.placeholder.com/36x36" alt="" class="img-circle"></a>
+                                <ul class="dropdown-menu">
+                                    <li><a href="#">Profile</a></li>
+                                    <li><a href="#">Calendar</a></li>
+                                    <li><a href="#"><span
+                                            class="badge pull-right badge-danger">42</span>Messages</a>
+                                    </li>
+                                    <li role="separator" class="divider"></li>
+                                    <li><a href="#">Account Settings</a></li>
+                                    <li><a href="#">Log Out</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div><!-- /.navbar-collapse -->
+                </div><!-- /.container-fluid -->
+            </nav>
+        </div><!-- /Page Header -->
+        <!-- Page Inner -->
+        <div class="page-inner">
+            <div class="page-title">
+                <h3 class="breadcrumb-header">拓扑</h3>
+            </div>
+            <div id="main-wrapper">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="panel panel-white">
+                            <div class="panel-heading clearfix">
+                                <h4 class="panel-title">Topo</h4>
+                            </div>
+                            <div class="panel-body">
+                                <div id="topo"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <dev class="col-md-4">
+                        <div class="panel panel-white">
+                            <div class="panel-heading clearfix">
+                                <h4 class="panel-title">BGP 信息</h4>
+                            </div>
+                            <div class="panel-body">
+                                <table class="table table-hover">
+                                    <thead>
+                                    <tr>
+                                        <th>Time Detected</th>
+                                        <th>Hijacked Prefix</th>
+                                        <th>Type</th>
+                                        <th>Hijacked AS</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr>
+                                        <th scope="row">2022/6/10</th>
+                                        <td>18.0.2.0/24</td>
+                                        <td>A</td>
+                                        <td>59</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">2022/6/10</th>
+                                        <td>82.0.2.0/24</td>
+                                        <td>A</td>
+                                        <td>33</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">2022/6/10</th>
+                                        <td>55.0.2.0/24</td>
+                                        <td>A</td>
+                                        <td>52</td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </dev>
+                </div><!-- Row -->
+            </div><!-- Main Wrapper -->
+            <div class="page-footer">
+                <p>Copyright &copy; 2022.Company name All rights reserved.<a target="_blank"
+                                                                             href="http://www.cssmoban.com/">&#x7F51;&#x9875;&#x6A21;&#x677F;</a>
+                </p>
+            </div>
+        </div><!-- /Page Inner -->
+        <div class="page-right-sidebar" id="main-right-sidebar">
+            <div class="page-right-sidebar-inner">
+                <div class="right-sidebar-top">
+                    <div class="right-sidebar-tabs">
+                        <!-- Nav tabs -->
+                        <ul class="nav nav-tabs" role="tablist">
+                            <li role="presentation" class="active" id="chat-tab"><a href="#chat"
+                                                                                    aria-controls="chat" role="tab"
+                                                                                    data-toggle="tab">chat</a></li>
+                            <li role="presentation" id="settings-tab"><a href="#settings" aria-controls="settings"
+                                                                         role="tab" data-toggle="tab">settings</a></li>
+                        </ul>
+                    </div>
+                    <a href="javascript:void(0)" class="right-sidebar-toggle right-sidebar-close"
+                       data-sidebar-id="main-right-sidebar"><i class="icon-close"></i></a>
+                </div>
+                <div class="right-sidebar-content">
+                    <!-- Tab panes -->
+                    <div class="tab-content">
+                        <div role="tabpanel" class="tab-pane active" id="chat">
+                            <div class="chat-list">
+                                <span class="chat-title">Recent</span>
+                                <a href="javascript:void(0);" class="right-sidebar-toggle chat-item unread"
+                                   data-sidebar-id="chat-right-sidebar">
+                                    <div class="user-avatar">
+                                        <img src="http://via.placeholder.com/40x40" alt="">
+                                    </div>
+                                    <div class="chat-info">
+                                        <span class="chat-author">David</span>
+                                        <span class="chat-text">where u at?</span>
+                                        <span class="chat-time">08:50</span>
+                                    </div>
+                                </a>
+                                <a href="javascript:void(0);"
+                                   class="right-sidebar-toggle chat-item unread active-user"
+                                   data-sidebar-id="chat-right-sidebar">
+                                    <div class="user-avatar">
+                                        <img src="http://via.placeholder.com/40x40" alt="">
+                                    </div>
+                                    <div class="chat-info">
+                                        <span class="chat-author">Daisy</span>
+                                        <span class="chat-text">Daisy sent a photo.</span>
+                                        <span class="chat-time">11:34</span>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="chat-list">
+                                <span class="chat-title">Older</span>
+                                <a href="javascript:void(0);" class="right-sidebar-toggle chat-item"
+                                   data-sidebar-id="chat-right-sidebar">
+                                    <div class="user-avatar">
+                                        <img src="http://via.placeholder.com/40x40" alt="">
+                                    </div>
+                                    <div class="chat-info">
+                                        <span class="chat-author">Tom</span>
+                                        <span class="chat-text">You: ok</span>
+                                        <span class="chat-time">2d</span>
+                                    </div>
+                                </a>
+                                <a href="javascript:void(0);" class="right-sidebar-toggle chat-item active-user"
+                                   data-sidebar-id="chat-right-sidebar">
+                                    <div class="user-avatar">
+                                        <img src="http://via.placeholder.com/40x40" alt="">
+                                    </div>
+                                    <div class="chat-info">
+                                        <span class="chat-author">Anna</span>
+                                        <span class="chat-text">asdasdasd</span>
+                                        <span class="chat-time">4d</span>
+                                    </div>
+                                </a>
+                                <a href="javascript:void(0);" class="right-sidebar-toggle chat-item active-user"
+                                   data-sidebar-id="chat-right-sidebar">
+                                    <div class="user-avatar">
+                                        <img src="http://via.placeholder.com/40x40" alt="">
+                                    </div>
+                                    <div class="chat-info">
+                                        <span class="chat-author">Liza</span>
+                                        <span class="chat-text">asdasdasd</span>
+                                        <span class="chat-time">&nbsp;</span>
+                                    </div>
+                                </a>
+                                <a href="javascript:void(0);" class="load-more-messages" data-toggle="tooltip"
+                                   data-placement="bottom" title="Load More">&bull;&bull;&bull;</a>
+                            </div>
+                        </div>
+                        <div role="tabpanel" class="tab-pane" id="settings">
+                            <div class="right-sidebar-settings">
+                                <span class="settings-title">General Settings</span>
+                                <ul class="sidebar-setting-list list-unstyled">
+                                    <li>
+                                        <span class="settings-option">Notifications</span><input type="checkbox"
+                                                                                                 class="js-switch"
+                                                                                                 checked/>
+                                    </li>
+                                    <li>
+                                        <span class="settings-option">Activity log</span><input type="checkbox"
+                                                                                                class="js-switch"
+                                                                                                checked/>
+                                    </li>
+                                    <li>
+                                        <span class="settings-option">Automatic updates</span><input type="checkbox"
+                                                                                                     class="js-switch"/>
+                                    </li>
+                                    <li>
+                                        <span class="settings-option">Allow backups</span><input type="checkbox"
+                                                                                                 class="js-switch"/>
+                                    </li>
+                                </ul>
+                                <span class="settings-title">Account Settings</span>
+                                <ul class="sidebar-setting-list list-unstyled">
+                                    <li>
+                                        <span class="settings-option">Chat</span><input type="checkbox"
+                                                                                        class="js-switch" checked/>
+                                    </li>
+                                    <li>
+                                        <span class="settings-option">Incognito mode</span><input type="checkbox"
+                                                                                                  class="js-switch"/>
+                                    </li>
+                                    <li>
+                                        <span class="settings-option">Public profile</span><input type="checkbox"
+                                                                                                  class="js-switch"/>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="page-right-sidebar" id="chat-right-sidebar">
+            <div class="page-right-sidebar-inner">
+                <div class="right-sidebar-top">
+                    <div class="chat-top-info">
+                        <span class="chat-name">Noah</span>
+                        <span class="chat-state">2h ago</span>
+                    </div>
+                    <a href="javascript:void(0)" class="right-sidebar-toggle chat-sidebar-close pull-right"
+                       data-sidebar-id="chat-right-sidebar"><i class="icon-keyboard_arrow_right"></i></a>
+                </div>
+                <div class="right-sidebar-content">
+                    <div class="right-sidebar-chat slimscroll">
+                        <div class="chat-bubbles">
+                            <div class="chat-start-date">02/06/2017 5:58PM</div>
+                            <div class="chat-bubble them">
+                                <div class="chat-bubble-img-container">
+                                    <img src="http://via.placeholder.com/38x38" alt="">
+                                </div>
+                                <div class="chat-bubble-text-container">
+                                    <span class="chat-bubble-text">Hello</span>
+                                </div>
+                            </div>
+                            <div class="chat-bubble me">
+                                <div class="chat-bubble-text-container">
+                                    <span class="chat-bubble-text">Hello!</span>
+                                </div>
+                            </div>
+                            <div class="chat-start-date">03/06/2017 4:22AM</div>
+                            <div class="chat-bubble me">
+                                <div class="chat-bubble-text-container">
+                                    <span class="chat-bubble-text">lorem</span>
+                                </div>
+                            </div>
+                            <div class="chat-bubble them">
+                                <div class="chat-bubble-img-container">
+                                    <img src="http://via.placeholder.com/38x38" alt="">
+                                </div>
+                                <div class="chat-bubble-text-container">
+                                    <span class="chat-bubble-text">ipsum dolor sit amet</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-write">
+                        <form class="form-horizontal" action="javascript:void(0);">
+                            <input type="text" class="form-control" placeholder="Say something">
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div><!-- /Page Content -->
+</div><!-- /Page Container -->
+<script src="/jquery/jquery-3.1.0.min.js"></script>
+<script src="/jquery/jquery.slimscroll.min.js"></script>
+<script src="/bootstrap/bootstrap.min.js"></script>
+<script src="/switchery/switchery.min.js"></script>
+<script src="/js/ecaps.min.js"></script>
+<script src="https://d3js.org/d3.v6.min.js"></script>
+<script src="https://unpkg.com/d3-v6-tip@1.0.6/build/d3-v6-tip.js"></script>
+<script>
+    // set the dimensions and margins of the graph
+    const margin = {top: 10, right: 30, bottom: 30, left: 40},
+        width = 1000 - margin.left - margin.right,
+        height = 600 - margin.top - margin.bottom;
+
+    // append the svg object to the body of the page
+    const svg = d3.select("#topo")
+        .append("svg")
+        .attr("width", "100%")
+        .attr("height", height + margin.top + margin.bottom)
+
+    d3.json("/data_network.json").then(function (data) {
+        data = data["topo"]
+
+        let node_by_id = d3.index(data.nodes, function (d) {
+            return d.id;
+        });
+
+        let links = svg.select('g.links');
+        if (!links.size()) {
+            links = svg.append('g').attr('class', 'links');
+        }
+
+        let nodes = svg.select('g.nodes');
+        if (!nodes.size()) {
+            nodes = svg.append('g').attr('class', 'nodes');
+        }
+
+        // Initialize the links
+        let link = links
+            .selectAll("g.link_container")
+            .data(data.links)
+
+        link.exit().remove();
+        let new_link = link.enter()
+            .append('g')
+            .classed('link_container', true);
+
+        new_link.append('path')
+            .classed('link_item', true)
+            .on('mouseover', function (e,d) {
+                let src_node, dst_node;
+                /*
+                    focus on target link
+                */
+                d3.select(this.parentNode).classed('focus', true);
+
+                /*
+                    focus on target and source node
+                    and show tips.
+                */
+                svg.select('g.nodes').selectAll('g.node_container')
+                    .each(function (node_d) {
+                        if (node_d.id === d.source) {
+                            src_node = d3.select(this).classed('focus focusing', true);
+                        } else if (node_d.id === d.target) {
+                            dst_node = d3.select(this).classed('focus focusing', true);
+                        }
+                    });
+                /*
+                    calculate tooltip position
+                */
+                let src_dir, dst_dir,
+                    src_offset = [0, 0],
+                    dst_offset = [0, 0],
+                    min_distance = 20,
+                    x_distance = src_node.datum().x - dst_node.datum().x,
+                    y_distance = src_node.datum().y - dst_node.datum().y;
+
+                if (Math.abs(x_distance) > Math.abs(y_distance)) {
+                    if (x_distance > 0) {
+                        src_dir = 'e';
+                        src_offset[1] = 5;
+                        dst_dir = 'w';
+                        dst_offset[1] = -5;
+                    } else {
+                        src_dir = 'w';
+                        src_offset[1] = -5;
+                        dst_dir = 'e';
+                        dst_offset[1] = 5;
+                    }
+
+                    if (Math.abs(y_distance) > min_distance) {
+                        if (y_distance > 0) {
+                            src_dir = 's' + src_dir;
+                            src_offset = [-5, -(Math.sign(src_offset[1]) * 5)];
+                            dst_dir = 'n' + dst_dir;
+                            dst_offset = [5, -(Math.sign(dst_offset[1]) * 5)];
+                        } else {
+                            src_dir = 'n' + src_dir;
+                            src_offset = [5, -(Math.sign(src_offset[1]) * 5)];
+                            dst_dir = 's' + dst_dir;
+                            dst_offset = [-5, -(Math.sign(dst_offset[1]) * 5)];
+                        }
+                    }
+                } else {
+                    if (y_distance > 0) {
+                        src_dir = 's';
+                        src_offset[0] = 5;
+                        dst_dir = 'n';
+                        dst_offset[0] = -5;
+                    } else {
+                        src_dir = 'n';
+                        src_offset[0] = -5;
+                        dst_dir = 's';
+                        dst_offset[0] = 5;
+                    }
+
+                    if (Math.abs(x_distance) > min_distance) {
+                        if (x_distance > 0) {
+                            src_dir = src_dir + 'e';
+                            src_offset = [-(Math.sign(src_offset[0]) * 5), -5];
+                            dst_dir = dst_dir + 'w';
+                            dst_offset = [-(Math.sign(dst_offset[0]) * 5), 5];
+                        } else {
+                            src_dir = src_dir + 'w';
+                            src_offset = [-(Math.sign(src_offset[0]) * 5), 5];
+                            dst_dir = dst_dir + 'e';
+                            dst_offset = [-(Math.sign(dst_offset[0]) * 5), -5];
+                        }
+                    }
+                }
+
+                link_src_tip
+                    .direction(src_dir)
+                    .offset(src_offset)
+                    .html("<strong>" + d.source_port_disp + "</strong>")
+                    .show(src_node.node());
+
+                console.log(1)
+                link_dst_tip
+                    .direction(dst_dir)
+                    .offset(dst_offset)
+                    .html("<strong>" + d.target_port_disp + "</strong>")
+                    .show(dst_node.node());
+
+                console.log(2)
+            })
+            .on('mouseout', function (e, d) {
+                /*
+                    move focus away from link.
+                */
+                d3.select(this.parentNode).classed('focus', false);
+
+                /*
+                    move focus away from target and source nodes
+                    hide tips
+                */
+                svg.select('g.nodes').selectAll('g.node_container')
+                    .each(function (node_d) {
+                        if (node_d.id === d.source) {
+                            src_node = d3.select(this).classed('focus focusing', false);
+                            link_src_tip.hide();
+                        } else if (node_d.id === d.target) {
+                            dst_node = d3.select(this).classed('focus focusing', false);
+                            link_dst_tip.hide();
+                        }
+                    });
+            });
+
+        link = new_link.merge(link);
+
+        // Initialize the nodes
+        let node = nodes
+            .selectAll('g.node_container')
+            .data(data.nodes)
+
+        /*
+        tooltip
+        */
+        const node_tip = d3.tip()
+            .attr('class', 'tooltip')
+            .offset([-10, 0])
+            .html(function (event, d) {
+                return "<p><strong class='title'>MAC:</strong> " + d.mac + "</p>" +
+                    "<p><strong class='title'>PREFIX:</strong>" + d.prefix + "</p>" +
+                    "<p><strong class='title'>AS:</strong>" + d.as + "</p>" +
+                    "<p><strong class='title'>Name:</strong>" + d.device_name + "</p>";
+            });
+        svg.call(node_tip);
+
+        const link_src_tip = d3.tip().attr('class', 'tooltip'),
+            link_dst_tip = d3.tip().attr('class', 'tooltip');
+        svg.call(link_src_tip);
+        svg.call(link_dst_tip);
+
+        let new_node = node.enter().append('g').on("click", function () {
+            console.log("click", this)
+        }).on('mouseover', function (d) {
+            d3.select(this).classed('focus', true);
+            // console.log(arguments)
+            return node_tip.show.apply(this, arguments);
+        }).on('mouseout', function (d) {
+            d3.select(this).classed('focus', false);
+            return node_tip.hide.apply(this, arguments);
+        })
+        new_node.append('circle')
+            .attr('r', 20)
+
+        new_node.append('text')
+            .attr('x', 0)
+            .attr('y', 12)
+            .classed('themis', true)
+            .text("r")
+
+        new_node.append('text')
+            .attr('x', 0)
+            .attr('y', 40)
+            .classed("desc", true)
+            .text(d => {
+                return d.device_name
+            })
+
+        node = new_node.merge(node);
+        node.attr('class', function (d) {
+            var stat_cls;
+            if (d['knmp_on'] && d['ip_on'] && d['snmp_on']) {
+                stat_cls = 'stat_normal';
+            } else if (d['knmp_on'] && d['ip_on'] && !d['snmp_on']) {
+                stat_cls = 'stat_abnormal';
+            } else if (d['knmp_on'] && !d['ip_on'] && !d['snmp_on']) {
+                stat_cls = 'stat_error'
+            } else if (!d['knmp_on'] && !d['ip_on'] && !d['snmp_on']) {
+                stat_cls = 'stat_down';
+            } else {
+                // knmp off, snmp_on -> unknown device.
+                stat_cls = 'stat_unknown';
+            }
+            return 'node_container ' + stat_cls;
+        });
+
+        link.select('path.link_item').attr("d", (d, idx) => {
+            return "M" + node_by_id.get(d['source']).position_x + "," + node_by_id.get(d['source']).position_y
+                + " " + node_by_id.get(d['target']).position_x + "," + node_by_id.get(d['target']).position_y;
+        });
+
+        node.attr("transform", d => {
+            return `translate(${d.position_x}, ${d.position_y})`;
+        })
+
+        let zoom = d3.zoom().scaleExtent([0.1, 5]).on('zoom', function (e) {
+            links.attr('transform', e.transform);
+            nodes.attr('transform', e.transform);
+        });
+        svg.call(zoom);
+    });
+</script>
+</body>
+
+</html>

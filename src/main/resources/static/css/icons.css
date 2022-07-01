@@ -1,0 +1,43 @@
+@charset "UTF-8";
+
+/* themis-font */
+@font-face {
+  font-family: "themis-font";
+  src:url("https://file.myfontastic.com/yQwf3VK85D635giASut3Xi/fonts/1654759658.eot");
+  src:url("https://file.myfontastic.com/yQwf3VK85D635giASut3Xi/fonts/1654759658.eot?#iefix") format("embedded-opentype"),
+    url("https://file.myfontastic.com/yQwf3VK85D635giASut3Xi/fonts/1654759658.woff") format("woff"),
+    url("https://file.myfontastic.com/yQwf3VK85D635giASut3Xi/fonts/1654759658.ttf") format("truetype"),
+    url("https://file.myfontastic.com/yQwf3VK85D635giASut3Xi/fonts/1654759658.svg#1654759658") format("svg");
+  font-weight: normal;
+  font-style: normal;
+}
+
+/*[data-icon]:before {*/
+/*  font-family: "themis-font" !important;*/
+/*  content: attr(data-icon);*/
+/*  font-style: normal !important;*/
+/*  font-weight: normal !important;*/
+/*  font-variant: normal !important;*/
+/*  text-transform: none !important;*/
+/*  speak: none;*/
+/*  line-height: 1;*/
+/*  -webkit-font-smoothing: antialiased;*/
+/*  -moz-osx-font-smoothing: grayscale;*/
+/*}*/
+
+/*[class^="icon-"]:before,*/
+/*[class*=" icon-"]:before {*/
+/*  font-family: "themis-font" !important;*/
+/*  font-style: normal !important;*/
+/*  font-weight: normal !important;*/
+/*  font-variant: normal !important;*/
+/*  text-transform: none !important;*/
+/*  speak: none;*/
+/*  line-height: 1;*/
+/*  -webkit-font-smoothing: antialiased;*/
+/*  -moz-osx-font-smoothing: grayscale;*/
+/*}*/
+
+/*.icon-modem:before {*/
+/*  content: "\72";*/
+/*}*/
