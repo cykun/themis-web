@@ -10,3 +10,6 @@ spring:
     cache: false
     mode: HTML
     enabled: true
+  jackson:
+    date-format: MM-dd HH:mm:ss
+    time-zone: GMT+8

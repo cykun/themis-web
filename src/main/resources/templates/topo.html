@@ -16,6 +16,8 @@
     <link href="/nvd3/nv.d3.min.css" rel="stylesheet">
 
     <link href="/css/ecaps.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/vue@next"></script>
     <style>
         .nodes {
             cursor: pointer;
@@ -147,9 +149,9 @@
         <!-- Page Header -->
         <div class="page-header">
             <div class="search-form">
-                <form action="#" method="GET">
+                <form onsubmit="return false">
                     <div class="input-group">
-                        <input type="text" name="search" class="form-control search-input"
+                        <input id="search-input" type="text" name="search" class="form-control search-input"
                                placeholder="Type something...">
                         <span class="input-group-btn">
                                 <button class="btn btn-default" id="close-search" type="button"><i
@@ -275,7 +277,7 @@
                                 <h4 class="panel-title">BGP 信息</h4>
                             </div>
                             <div class="panel-body">
-                                <table class="table table-hover">
+                                <table class="table table-hover" id="bgpInfos">
                                     <thead>
                                     <tr>
                                         <th>Time Detected</th>
@@ -285,23 +287,11 @@
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    <tr>
-                                        <th scope="row">2022/6/10</th>
-                                        <td>18.0.2.0/24</td>
-                                        <td>A</td>
-                                        <td>59</td>
-                                    </tr>
-                                    <tr>
-                                        <th scope="row">2022/6/10</th>
-                                        <td>82.0.2.0/24</td>
-                                        <td>A</td>
-                                        <td>33</td>
-                                    </tr>
-                                    <tr>
-                                        <th scope="row">2022/6/10</th>
-                                        <td>55.0.2.0/24</td>
-                                        <td>A</td>
-                                        <td>52</td>
+                                    <tr v-for="item in items">
+                                        <th scope="row">{{item.detectedTime}}</th>
+                                        <td>{{item.hijackedPrefix}}</td>
+                                        <td>{{item.type}}</td>
+                                        <td>{{item.hijackedAS}}</td>
                                     </tr>
                                     </tbody>
                                 </table>
@@ -506,252 +496,290 @@
 <script src="https://d3js.org/d3.v6.min.js"></script>
 <script src="https://unpkg.com/d3-v6-tip@1.0.6/build/d3-v6-tip.js"></script>
 <script>
-    // set the dimensions and margins of the graph
-    const margin = {top: 10, right: 30, bottom: 30, left: 40},
-        width = 1000 - margin.left - margin.right,
-        height = 600 - margin.top - margin.bottom;
+    function loadTopo() {
+        // set the dimensions and margins of the graph
+        const margin = {top: 10, right: 30, bottom: 30, left: 40},
+            width = 1000 - margin.left - margin.right,
+            height = 600 - margin.top - margin.bottom;
 
-    // append the svg object to the body of the page
-    const svg = d3.select("#topo")
-        .append("svg")
-        .attr("width", "100%")
-        .attr("height", height + margin.top + margin.bottom)
+        // append the svg object to the body of the page
+        d3.select("#topo").select("svg").remove()
+        const svg = d3.select("#topo")
+            .append("svg")
+            .attr("width", "100%")
+            .attr("height", height + margin.top + margin.bottom)
 
-    d3.json("/data_network.json").then(function (data) {
-        data = data["topo"]
+        d3.json("/data_network.json").then(function (data) {
+            data = data["topo"]
+            console.log(data)
 
-        let node_by_id = d3.index(data.nodes, function (d) {
-            return d.id;
-        });
-
-        let links = svg.select('g.links');
-        if (!links.size()) {
-            links = svg.append('g').attr('class', 'links');
-        }
-
-        let nodes = svg.select('g.nodes');
-        if (!nodes.size()) {
-            nodes = svg.append('g').attr('class', 'nodes');
-        }
-
-        // Initialize the links
-        let link = links
-            .selectAll("g.link_container")
-            .data(data.links)
-
-        link.exit().remove();
-        let new_link = link.enter()
-            .append('g')
-            .classed('link_container', true);
-
-        new_link.append('path')
-            .classed('link_item', true)
-            .on('mouseover', function (e,d) {
-                let src_node, dst_node;
-                /*
-                    focus on target link
-                */
-                d3.select(this.parentNode).classed('focus', true);
-
-                /*
-                    focus on target and source node
-                    and show tips.
-                */
-                svg.select('g.nodes').selectAll('g.node_container')
-                    .each(function (node_d) {
-                        if (node_d.id === d.source) {
-                            src_node = d3.select(this).classed('focus focusing', true);
-                        } else if (node_d.id === d.target) {
-                            dst_node = d3.select(this).classed('focus focusing', true);
-                        }
-                    });
-                /*
-                    calculate tooltip position
-                */
-                let src_dir, dst_dir,
-                    src_offset = [0, 0],
-                    dst_offset = [0, 0],
-                    min_distance = 20,
-                    x_distance = src_node.datum().x - dst_node.datum().x,
-                    y_distance = src_node.datum().y - dst_node.datum().y;
-
-                if (Math.abs(x_distance) > Math.abs(y_distance)) {
-                    if (x_distance > 0) {
-                        src_dir = 'e';
-                        src_offset[1] = 5;
-                        dst_dir = 'w';
-                        dst_offset[1] = -5;
-                    } else {
-                        src_dir = 'w';
-                        src_offset[1] = -5;
-                        dst_dir = 'e';
-                        dst_offset[1] = 5;
-                    }
-
-                    if (Math.abs(y_distance) > min_distance) {
-                        if (y_distance > 0) {
-                            src_dir = 's' + src_dir;
-                            src_offset = [-5, -(Math.sign(src_offset[1]) * 5)];
-                            dst_dir = 'n' + dst_dir;
-                            dst_offset = [5, -(Math.sign(dst_offset[1]) * 5)];
-                        } else {
-                            src_dir = 'n' + src_dir;
-                            src_offset = [5, -(Math.sign(src_offset[1]) * 5)];
-                            dst_dir = 's' + dst_dir;
-                            dst_offset = [-5, -(Math.sign(dst_offset[1]) * 5)];
-                        }
-                    }
-                } else {
-                    if (y_distance > 0) {
-                        src_dir = 's';
-                        src_offset[0] = 5;
-                        dst_dir = 'n';
-                        dst_offset[0] = -5;
-                    } else {
-                        src_dir = 'n';
-                        src_offset[0] = -5;
-                        dst_dir = 's';
-                        dst_offset[0] = 5;
-                    }
-
-                    if (Math.abs(x_distance) > min_distance) {
-                        if (x_distance > 0) {
-                            src_dir = src_dir + 'e';
-                            src_offset = [-(Math.sign(src_offset[0]) * 5), -5];
-                            dst_dir = dst_dir + 'w';
-                            dst_offset = [-(Math.sign(dst_offset[0]) * 5), 5];
-                        } else {
-                            src_dir = src_dir + 'w';
-                            src_offset = [-(Math.sign(src_offset[0]) * 5), 5];
-                            dst_dir = dst_dir + 'e';
-                            dst_offset = [-(Math.sign(dst_offset[0]) * 5), -5];
-                        }
-                    }
-                }
-
-                link_src_tip
-                    .direction(src_dir)
-                    .offset(src_offset)
-                    .html("<strong>" + d.source_port_disp + "</strong>")
-                    .show(src_node.node());
-
-                console.log(1)
-                link_dst_tip
-                    .direction(dst_dir)
-                    .offset(dst_offset)
-                    .html("<strong>" + d.target_port_disp + "</strong>")
-                    .show(dst_node.node());
-
-                console.log(2)
-            })
-            .on('mouseout', function (e, d) {
-                /*
-                    move focus away from link.
-                */
-                d3.select(this.parentNode).classed('focus', false);
-
-                /*
-                    move focus away from target and source nodes
-                    hide tips
-                */
-                svg.select('g.nodes').selectAll('g.node_container')
-                    .each(function (node_d) {
-                        if (node_d.id === d.source) {
-                            src_node = d3.select(this).classed('focus focusing', false);
-                            link_src_tip.hide();
-                        } else if (node_d.id === d.target) {
-                            dst_node = d3.select(this).classed('focus focusing', false);
-                            link_dst_tip.hide();
-                        }
-                    });
+            let node_by_id = d3.index(data.nodes, function (d) {
+                return d.id;
             });
 
-        link = new_link.merge(link);
-
-        // Initialize the nodes
-        let node = nodes
-            .selectAll('g.node_container')
-            .data(data.nodes)
-
-        /*
-        tooltip
-        */
-        const node_tip = d3.tip()
-            .attr('class', 'tooltip')
-            .offset([-10, 0])
-            .html(function (event, d) {
-                return "<p><strong class='title'>MAC:</strong> " + d.mac + "</p>" +
-                    "<p><strong class='title'>PREFIX:</strong>" + d.prefix + "</p>" +
-                    "<p><strong class='title'>AS:</strong>" + d.as + "</p>" +
-                    "<p><strong class='title'>Name:</strong>" + d.device_name + "</p>";
-            });
-        svg.call(node_tip);
-
-        const link_src_tip = d3.tip().attr('class', 'tooltip'),
-            link_dst_tip = d3.tip().attr('class', 'tooltip');
-        svg.call(link_src_tip);
-        svg.call(link_dst_tip);
-
-        let new_node = node.enter().append('g').on("click", function () {
-            console.log("click", this)
-        }).on('mouseover', function (d) {
-            d3.select(this).classed('focus', true);
-            // console.log(arguments)
-            return node_tip.show.apply(this, arguments);
-        }).on('mouseout', function (d) {
-            d3.select(this).classed('focus', false);
-            return node_tip.hide.apply(this, arguments);
-        })
-        new_node.append('circle')
-            .attr('r', 20)
-
-        new_node.append('text')
-            .attr('x', 0)
-            .attr('y', 12)
-            .classed('themis', true)
-            .text("r")
-
-        new_node.append('text')
-            .attr('x', 0)
-            .attr('y', 40)
-            .classed("desc", true)
-            .text(d => {
-                return d.device_name
-            })
-
-        node = new_node.merge(node);
-        node.attr('class', function (d) {
-            var stat_cls;
-            if (d['knmp_on'] && d['ip_on'] && d['snmp_on']) {
-                stat_cls = 'stat_normal';
-            } else if (d['knmp_on'] && d['ip_on'] && !d['snmp_on']) {
-                stat_cls = 'stat_abnormal';
-            } else if (d['knmp_on'] && !d['ip_on'] && !d['snmp_on']) {
-                stat_cls = 'stat_error'
-            } else if (!d['knmp_on'] && !d['ip_on'] && !d['snmp_on']) {
-                stat_cls = 'stat_down';
-            } else {
-                // knmp off, snmp_on -> unknown device.
-                stat_cls = 'stat_unknown';
+            let links = svg.select('g.links');
+            if (!links.size()) {
+                links = svg.append('g').attr('class', 'links');
             }
-            return 'node_container ' + stat_cls;
-        });
 
-        link.select('path.link_item').attr("d", (d, idx) => {
-            return "M" + node_by_id.get(d['source']).position_x + "," + node_by_id.get(d['source']).position_y
-                + " " + node_by_id.get(d['target']).position_x + "," + node_by_id.get(d['target']).position_y;
-        });
+            let nodes = svg.select('g.nodes');
+            if (!nodes.size()) {
+                nodes = svg.append('g').attr('class', 'nodes');
+            }
 
-        node.attr("transform", d => {
-            return `translate(${d.position_x}, ${d.position_y})`;
-        })
+            // Initialize the links
+            let link = links
+                .selectAll("g.link_container")
+                .data(data.links)
 
-        let zoom = d3.zoom().scaleExtent([0.1, 5]).on('zoom', function (e) {
-            links.attr('transform', e.transform);
-            nodes.attr('transform', e.transform);
+            link.exit().remove();
+            let new_link = link.enter()
+                .append('g')
+                .classed('link_container', true);
+
+            new_link.append('path')
+                .classed('link_item', true)
+                .on('mouseover', function (e, d) {
+                    let src_node, dst_node;
+                    /*
+                        focus on target link
+                    */
+                    d3.select(this.parentNode).classed('focus', true);
+
+                    /*
+                        focus on target and source node
+                        and show tips.
+                    */
+                    svg.select('g.nodes').selectAll('g.node_container')
+                        .each(function (node_d) {
+                            if (node_d.id === d.source) {
+                                src_node = d3.select(this).classed('focus focusing', true);
+                            } else if (node_d.id === d.target) {
+                                dst_node = d3.select(this).classed('focus focusing', true);
+                            }
+                        });
+                    /*
+                        calculate tooltip position
+                    */
+                    let src_dir, dst_dir,
+                        src_offset = [0, 0],
+                        dst_offset = [0, 0],
+                        min_distance = 20,
+                        x_distance = src_node.datum().x - dst_node.datum().x,
+                        y_distance = src_node.datum().y - dst_node.datum().y;
+
+                    if (Math.abs(x_distance) > Math.abs(y_distance)) {
+                        if (x_distance > 0) {
+                            src_dir = 'e';
+                            src_offset[1] = 5;
+                            dst_dir = 'w';
+                            dst_offset[1] = -5;
+                        } else {
+                            src_dir = 'w';
+                            src_offset[1] = -5;
+                            dst_dir = 'e';
+                            dst_offset[1] = 5;
+                        }
+
+                        if (Math.abs(y_distance) > min_distance) {
+                            if (y_distance > 0) {
+                                src_dir = 's' + src_dir;
+                                src_offset = [-5, -(Math.sign(src_offset[1]) * 5)];
+                                dst_dir = 'n' + dst_dir;
+                                dst_offset = [5, -(Math.sign(dst_offset[1]) * 5)];
+                            } else {
+                                src_dir = 'n' + src_dir;
+                                src_offset = [5, -(Math.sign(src_offset[1]) * 5)];
+                                dst_dir = 's' + dst_dir;
+                                dst_offset = [-5, -(Math.sign(dst_offset[1]) * 5)];
+                            }
+                        }
+                    } else {
+                        if (y_distance > 0) {
+                            src_dir = 's';
+                            src_offset[0] = 5;
+                            dst_dir = 'n';
+                            dst_offset[0] = -5;
+                        } else {
+                            src_dir = 'n';
+                            src_offset[0] = -5;
+                            dst_dir = 's';
+                            dst_offset[0] = 5;
+                        }
+
+                        if (Math.abs(x_distance) > min_distance) {
+                            if (x_distance > 0) {
+                                src_dir = src_dir + 'e';
+                                src_offset = [-(Math.sign(src_offset[0]) * 5), -5];
+                                dst_dir = dst_dir + 'w';
+                                dst_offset = [-(Math.sign(dst_offset[0]) * 5), 5];
+                            } else {
+                                src_dir = src_dir + 'w';
+                                src_offset = [-(Math.sign(src_offset[0]) * 5), 5];
+                                dst_dir = dst_dir + 'e';
+                                dst_offset = [-(Math.sign(dst_offset[0]) * 5), -5];
+                            }
+                        }
+                    }
+
+                    link_src_tip
+                        .direction(src_dir)
+                        .offset(src_offset)
+                        .html("<strong>" + d.source_port_disp + "</strong>")
+                        .show(src_node.node());
+                    link_dst_tip
+                        .direction(dst_dir)
+                        .offset(dst_offset)
+                        .html("<strong>" + d.target_port_disp + "</strong>")
+                        .show(dst_node.node());
+                })
+                .on('mouseout', function (e, d) {
+                    /*
+                        move focus away from link.
+                    */
+                    d3.select(this.parentNode).classed('focus', false);
+
+                    /*
+                        move focus away from target and source nodes
+                        hide tips
+                    */
+                    svg.select('g.nodes').selectAll('g.node_container')
+                        .each(function (node_d) {
+                            if (node_d.id === d.source) {
+                                src_node = d3.select(this).classed('focus focusing', false);
+                                link_src_tip.hide();
+                            } else if (node_d.id === d.target) {
+                                dst_node = d3.select(this).classed('focus focusing', false);
+                                link_dst_tip.hide();
+                            }
+                        });
+                });
+
+            link = new_link.merge(link);
+
+            // Initialize the nodes
+            let node = nodes
+                .selectAll('g.node_container')
+                .data(data.nodes)
+
+            /*
+            tooltip
+            */
+            const node_tip = d3.tip()
+                .attr('class', 'tooltip')
+                .offset([-10, 0])
+                .html(function (event, d) {
+                    return "<p><strong class='title'>PREFIX:</strong>" + d.prefix + "</p>" +
+                        "<p><strong class='title'>AS:</strong>" + d.as + "</p>"
+                });
+            svg.call(node_tip);
+
+            const link_src_tip = d3.tip().attr('class', 'tooltip'),
+                link_dst_tip = d3.tip().attr('class', 'tooltip');
+            svg.call(link_src_tip);
+            svg.call(link_dst_tip);
+
+            let drag = d3.drag()
+                .on('start', function (d) {
+                    // d.fx = d.position_x;
+                    // d.fy = d.position_x;
+                })
+                .on('drag', function (event, d) {
+                    d3.select(this)
+                        .attr("cx", d.cx = d3.event.x)
+                        .attr("cy", d.cy = d3.event.y)
+                })
+                .on('end', function (d) {
+                    // d.fx = null;
+                    // d.fy = null;
+                })
+            let new_node = node.enter().append('g').on("click", function () {
+                console.log("click", this)
+            }).on('mouseover', function (d) {
+                d3.select(this).classed('focus', true);
+                return node_tip.show.apply(this, arguments);
+            }).on('mouseout', function (d) {
+                d3.select(this).classed('focus', false);
+                return node_tip.hide.apply(this, arguments);
+            })
+            new_node.append('circle')
+                .attr('r', 20)
+
+            new_node.append('text')
+                .attr('x', 0)
+                .attr('y', 12)
+                .classed('themis', true)
+                .text("r")
+
+            new_node.append('text')
+                .attr('x', 0)
+                .attr('y', 40)
+                .classed("desc", true)
+                .text(d => {
+                    return "AS:" + d.as
+                })
+
+            node = new_node.merge(node);
+            node.attr('class', function (d) {
+                let stat_cls;
+                if (d['normal']) {
+                    stat_cls = 'stat_normal';
+                } else {
+                    stat_cls = 'stat_abnormal';
+                }
+                return 'node_container ' + stat_cls;
+            });
+
+            link.select('path.link_item').attr("d", (d, idx) => {
+                return "M" + node_by_id.get(d['source']).x + "," + node_by_id.get(d['source']).y
+                    + " " + node_by_id.get(d['target']).x + "," + node_by_id.get(d['target']).y;
+            });
+
+            node.attr("transform", d => {
+                return `translate(${d.x}, ${d.y})`;
+            })
+
+            let zoom = d3.zoom().scaleExtent([0.1, 5]).on('zoom', function (e) {
+                links.attr('transform', e.transform);
+                nodes.attr('transform', e.transform);
+            });
+            svg.call(zoom);
         });
-        svg.call(zoom);
+    }
+
+</script>
+<script>
+    function loadBgpInfos() {
+        axios.get('/bgpinfo')
+            .then(function (response) {
+                console.log(response.data)
+                Vue.createApp({
+                    data() {
+                        return {
+                            items: response.data
+                        }
+                    }
+                }).mount('#bgpInfos')
+            })
+            .catch(function (error) {
+                console.log(error.data);
+            });
+    }
+
+    loadTopo()
+    loadBgpInfos()
+    $('#search-input').bind('keydown', function (event) {
+        if (event.keyCode === 13) {
+            axios.get('/getTopo?input=' + $("#search-input").val())
+                .then(function (response) {
+                    loadTopo()
+                })
+                .catch(function (error) {
+                    console.log(error.data);
+                });
+        }
     });
+
 </script>
 </body>
 
